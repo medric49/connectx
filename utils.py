@@ -141,7 +141,7 @@ def check_almost_winning_board(board, player):
     return False
 
 
-def finish_board(board):
+def finished_board(board):
     if board.count(0) == 0:
         return True
 
@@ -171,3 +171,64 @@ def finish_board(board):
     return False
 
 
+def get_final_states(filename):
+    all_states = load_state_file(filename)
+    states = set()
+    for state in all_states:
+        board, mark, player = state
+        if finished_board(board):
+            states.add(state)
+    return states
+
+
+def get_available_actions(state):
+    board, mark, player = state
+    grid = make_grid(board)
+
+    if mark != player:
+        return []
+
+    if finished_board(board):
+        return []
+
+    actions = []
+    for i in range(3):
+        for j in range(3):
+            if grid[i][j] == 0:
+                actions.append(i*3+j)
+    return actions
+
+
+def get_next_state(state, action):
+    board, mark, player = state
+
+    next_board = list(board).copy()
+    next_board[action] = mark
+
+    return tuple(next_board), 3 - mark, player
+
+
+def get_next_state_and_reward(state, action):
+    next_state = get_next_state(state, action)
+    reward = get_reward(next_state)
+    return next_state, reward
+
+
+def get_reward(next_state):
+    next_board, next_mark, player = next_state
+
+    reward = 0
+    if check_winning_board(next_board, player):
+        reward += 75
+    if check_winning_board(next_board, 3 - player):
+        reward += -100
+    if check_almost_winning_board(next_board, player):
+        reward += 10
+    if check_almost_winning_board(next_board, 3 - player):
+        reward += -25
+    if check_defending_board(next_board, player):
+        reward += 15
+    if next_board.count(0) == 0:
+        reward += 25
+
+    return reward
